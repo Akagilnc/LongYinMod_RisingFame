@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+新增 MelonLoader 编译目标，让同一份源码也能产出 ML 模组：
+
+- 新增 `LongYinLiteMod.MelonLoader.csproj` 与 `LongYinLiteMod.sln`，`dotnet build LongYinLiteMod.sln` 一次产出 BepInEx 与 MelonLoader 两份 `RisingFame.dll`
+- BepInEx 路径源码、产物、行为完全不变；MelonLoader 路径全部 `#if MELON` 圈定
+- ML 路径下倍率改由 `MelonPreferences` 管理，写入 `UserData/RisingFame.cfg`，含中文显示名与注释
+- 默认倍率与 BepInEx 路径一致；想关掉单项加成只留刷新功能：`*Base = 1.0` 且 `*Step = 0.0`
+- BepInEx 与 MelonLoader 不要同时安装（两者都通过 `version.dll` 注入）
+- 安装与排障入口已同步到 `README.md` `[01.M]` 与 `[06]`
+
 ## v1.8.16
 
 突破刷新回归修复与实现收口：

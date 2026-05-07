@@ -2,7 +2,7 @@
 
 # 名扬天下 RisingFame
 
-《龙吟立志传》BepInEx 插件  
+《龙吟立志传》BepInEx / MelonLoader 插件  
 聚焦稳定、低负担、真入账的核心增强
 
 [![Release](https://img.shields.io/github/v/release/Cooper-X-Oak/LongYinMod_RisingFame?label=release)](https://github.com/Cooper-X-Oak/LongYinMod_RisingFame/releases/latest)
@@ -10,6 +10,7 @@
 ![Platform](https://img.shields.io/badge/platform-Windows%20x64-2ea44f)
 ![Runtime](https://img.shields.io/badge/runtime-Unity%20IL2CPP-ffb000)
 ![BepInEx](https://img.shields.io/badge/BepInEx-6.0.0--be.755%2B3fab71a-6f42c1)
+![MelonLoader](https://img.shields.io/badge/MelonLoader-0.7.x-0a84ff)
 
 当前版本：1.8.x（含 1.8.16）
 
@@ -22,7 +23,8 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">安装</a> ·
+  <a href="#quick-start">安装 · BepInEx</a> ·
+  <a href="#quick-start-melon">安装 · MelonLoader</a> ·
   <a href="#why-install">卖点</a> ·
   <a href="#refresh-feature">刷新</a> ·
   <a href="#support-boundary">边界</a> ·
@@ -45,7 +47,7 @@
 
 <a id="quick-start"></a>
 
-## [01] 快速开始
+## [01] 快速开始（BepInEx 路径）
 
 1. 从 [Releases](https://github.com/Cooper-X-Oak/LongYinMod_RisingFame/releases/latest) 下载当前版本的 `RisingFame.dll`。
 2. 下载并解压固定版本 `BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755+3fab71a.zip`。
@@ -57,6 +59,20 @@
 > [!NOTE]
 > 如果只装固定版本的 BepInEx 就已经打不开游戏，先不要继续加本插件。  
 > 这种情况通常是 BepInEx 环境问题，不是 `RisingFame.dll` 本身。
+
+<a id="quick-start-melon"></a>
+
+## [01.M] 快速开始（MelonLoader 路径）
+
+1. 从 [Releases](https://github.com/Cooper-X-Oak/LongYinMod_RisingFame/releases/latest) 下载当前版本对应的 MelonLoader 资产 `RisingFame.dll`（与 BepInEx 版同名，**不要混装**）。
+2. 安装 [MelonLoader](https://melonwiki.xyz/) `0.7.x` x64 IL2CPP 版本到 `LongYinLiZhiZhuan.exe` 所在目录。
+3. 先不要放其他 mod，手动启动一次游戏，确认已生成 `MelonLoader/Latest.log` 并完成 Il2Cpp 程序集生成。
+4. 将 MelonLoader 版的 `RisingFame.dll` 放入 `Mods/`。
+5. 再次启动游戏，进游戏后按 `=` 测试开关。
+6. 首次进游戏后会在 `UserData/RisingFame.cfg` 生成倍率配置（带中文注释）。**想关掉加成只留一键刷新**：把所有 `*Base` 设为 `1.0`、`*Step` 设为 `0.0`，重启游戏即可。
+
+> [!IMPORTANT]
+> BepInEx 与 MelonLoader **二选一**，不要同时安装。两个加载器都通过 `version.dll` 注入,叠装会冲突。
 
 ---
 
@@ -144,9 +160,11 @@
 - 系统：`Windows x64`
 - 游戏：`Steam 版《龙吟立志传》`
 - 运行时：`Unity IL2CPP`
-- BepInEx：`6.0.0-be.755+3fab71a`
-- 安装顺序：先单独验证 `BepInEx` 能正常启动，再放入 `RisingFame.dll`
-- 排障原则：不要一上来就和其他 mod 混装测试
+- 加载器：二选一
+  - BepInEx：`6.0.0-be.755+3fab71a`
+  - MelonLoader：`0.7.x` x64 IL2CPP（Il2CppInterop 输出）
+- 安装顺序：先单独验证选定加载器能正常启动，再放入 `RisingFame.dll`
+- 排障原则：不要一上来就和其他 mod 混装测试，也不要同时装两个加载器
 
 > [!WARNING]
 > 超出以上组合的环境、版本和混装方式，不在当前支持范围内。  
@@ -183,14 +201,16 @@
 
 ### [06.2] 放入 DLL 后不生效或进不去
 
-先确认 `BepInEx/LogOutput.log` 里有插件加载信息，并确保 `BepInEx/plugins/` 里只有当前版本的 `RisingFame.dll`。  
-排障时不要先混装其他 mod。
+- BepInEx：确认 `BepInEx/LogOutput.log` 里有插件加载信息，且 `BepInEx/plugins/` 里只有当前版本的 `RisingFame.dll`。
+- MelonLoader：确认 `MelonLoader/Latest.log` 里出现 `Melon Assembly loaded: '.\Mods\RisingFame.dll'` 和插件 banner，且 `Mods/` 里只有当前版本的 `RisingFame.dll`。
+
+排障时不要先混装其他 mod，也不要同时装两个加载器。
 
 ### [06.3] 反馈问题时带上这些
 
-1. `BepInEx/LogOutput.log`
+1. 加载器日志：BepInEx 用户提供 `BepInEx/LogOutput.log`，MelonLoader 用户提供 `MelonLoader/Latest.log`
 2. 游戏根目录截图
-3. 你下载的 `BepInEx` 压缩包完整文件名
+3. 你下载的加载器（`BepInEx` 或 `MelonLoader` 安装包）完整文件名
 
 ### [06.4] 突破刷新后，再打开阅读武学界面变空白
 

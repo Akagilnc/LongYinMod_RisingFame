@@ -18,9 +18,12 @@
 - `Windows x64`
 - `Steam 版 龙吟立志传`
 - `Unity IL2CPP`
-- `BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755+3fab71a.zip`
+- 加载器二选一（不要叠装）：
+  - `BepInEx-Unity.IL2CPP-win-x64-6.0.0-be.755+3fab71a.zip`
+  - `MelonLoader 0.7.x x64 IL2CPP`
 
 说明：
 
 - 武学经验与技艺经验倍率对走同一入账路径的 NPC 同样生效
-- 如反馈问题，请提供 `BepInEx/LogOutput.log`、游戏根目录截图、BepInEx 压缩包完整文件名
+- MelonLoader 路径的倍率走 `UserData/RisingFame.cfg`，默认值与 BepInEx 一致
+- 如反馈问题，请提供加载器日志（`BepInEx/LogOutput.log` 或 `MelonLoader/Latest.log`）、游戏根目录截图、加载器安装包完整文件名
