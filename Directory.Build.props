@@ -1,0 +1,11 @@
+<Project>
+  <!--
+    Read very early by MSBuild before SDK targets, so output-path overrides applied here
+    do not trigger MSB3539. The MelonLoader project lives next to the BepInEx project in
+    the same folder, so we keep their obj/bin trees separate to avoid AssemblyName clashes.
+  -->
+  <PropertyGroup Condition=" '$(MSBuildProjectName)' == 'LongYinLiteMod.MelonLoader' ">
+    <BaseIntermediateOutputPath>obj\MelonLoader\</BaseIntermediateOutputPath>
+    <BaseOutputPath>bin\MelonLoader\</BaseOutputPath>
+  </PropertyGroup>
+</Project>

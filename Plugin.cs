@@ -1,21 +1,62 @@
-﻿using BepInEx;
+﻿#if MELON
+using MelonLoader;
+using Il2Cpp;
+#else
+using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
+#endif
 using HarmonyLib;
 using System;
 using System.Reflection;
 using System.Text;
 using UnityEngine;
 
+#if MELON
+[assembly: MelonInfo(typeof(RisingFame.Plugin), "RisingFame - MingYangTianXia", "1.8.16", "luoxu")]
+[assembly: MelonGame(null, "LongYinLiZhiZhuan")]
+#endif
+
 namespace RisingFame;
 
+#if !MELON
 [BepInPlugin("com.luoxu.longyin.risingfame", "RisingFame - MingYangTianXia", "1.8.16")]
-public class Plugin : BasePlugin
+#endif
+public class Plugin :
+#if MELON
+    MelonMod
+#else
+    BasePlugin
+#endif
 {
     const string PluginVersion = "1.8.16";
     const int BreakThroughFastRefreshFrames = 20;
     const float BreakThroughFastParticleDuration = 0.02f;
+
+#if MELON
+    // Thin shim so existing Log.LogInfo/LogWarning/LogError call sites stay unchanged.
+    internal sealed class MelonLogShim
+    {
+        readonly MelonLogger.Instance _i;
+        public MelonLogShim(MelonLogger.Instance i) { _i = i; }
+        public void LogInfo(string msg) => _i.Msg(msg);
+        public void LogWarning(string msg) => _i.Warning(msg);
+        public void LogError(string msg) => _i.Error(msg);
+        public void LogDebug(string msg) => _i.Msg(msg);
+    }
+    internal static MelonLogShim Log = null!;
+
+    // Configurable multipliers (UserData/MelonPreferences.cfg [RisingFame])
+    static MelonPreferences_Category? _cfg;
+    static MelonPreferences_Entry<float>? _cfgExpBase;
+    static MelonPreferences_Entry<float>? _cfgExpStep;
+    static MelonPreferences_Entry<float>? _cfgLivingBase;
+    static MelonPreferences_Entry<float>? _cfgLivingStep;
+    static MelonPreferences_Entry<float>? _cfgFavorBase;
+    static MelonPreferences_Entry<float>? _cfgFavorStep;
+#else
     internal static new ManualLogSource Log = null!;
+#endif
 
     // ---- Mod ON/OFF ----
     internal static bool Enabled = true;
@@ -66,35 +107,61 @@ public class Plugin : BasePlugin
     static bool _auctionProbeStackEmitted;
 
     // Exp multiplier: rank1=x3.0, each rank +0.5 (rank6=x5.5)
+    // Set base=1.0, step=0 in MelonPreferences to disable while keeping the rest of the mod active.
     internal static float GetExpMultiplier(HeroData hero)
     {
         if (!Enabled) return 1f;
+#if MELON
+        float b = _cfgExpBase?.Value ?? 3.0f;
+        float s = _cfgExpStep?.Value ?? 0.5f;
+        return Math.Max(b + s * hero.heroForceLv, 1f);
+#else
         return Math.Max(3.0f + 0.5f * hero.heroForceLv, 1f);
+#endif
     }
 
     // Living skill exp multiplier: rank1=x2.0, each rank +0.5 (rank6=x4.5)
     internal static float GetLivingSkillExpMultiplier(HeroData hero)
     {
         if (!Enabled) return 1f;
+#if MELON
+        float b = _cfgLivingBase?.Value ?? 2.0f;
+        float s = _cfgLivingStep?.Value ?? 0.5f;
+        return Math.Max(b + s * hero.heroForceLv, 1f);
+#else
         return Math.Max(2.0f + 0.5f * hero.heroForceLv, 1f);
+#endif
     }
 
     // Favor multiplier: rank1=x1.5, each rank +0.5 (rank6=x4.0)
     internal static float GetFavorMultiplier(HeroData hero)
     {
         if (!Enabled) return 1f;
+#if MELON
+        float b = _cfgFavorBase?.Value ?? 1.5f;
+        float s = _cfgFavorStep?.Value ?? 0.5f;
+        return Math.Max(b + s * hero.heroForceLv, 1f);
+#else
         return Math.Max(1.5f + 0.5f * hero.heroForceLv, 1f);
+#endif
     }
 
     // ---- Beep via Windows API ----
     [System.Runtime.InteropServices.DllImport("kernel32.dll")]
     static extern bool Beep(uint freq, uint duration);
 
+#if MELON
+    public override void OnInitializeMelon()
+    {
+        Log = new MelonLogShim(LoggerInstance);
+        InitConfig();
+#else
     public override void Load()
     {
         Log = base.Log;
+#endif
 
-        var harmony = new Harmony("com.luoxu.longyin.risingfame");
+        var harmony = new HarmonyLib.Harmony("com.luoxu.longyin.risingfame");
 
         // ReadBook exp rate (for UI/theoretical display consistency)
         TryPatch(harmony, AccessTools.Method(typeof(HeroData), "GetBookExpRate", new[] { typeof(KungfuSkillLvData) }),
@@ -228,7 +295,37 @@ public class Plugin : BasePlugin
         Log.LogInfo("Martial exp: rank1 x3.0, +0.5/rank. Living exp: rank1 x2.0, +0.5/rank. Favor: rank1 x1.5, +0.5/rank. Contribution enabled. BookWrite: speed x10, cost/time /10. Quick refresh: breakthrough / special enhance / enhance / craft / auction reroll arm.");
     }
 
-    void TryPatch(Harmony harmony, System.Reflection.MethodInfo? target,
+#if MELON
+    static void InitConfig()
+    {
+        _cfg = MelonPreferences.CreateCategory("RisingFame", "扬名天下");
+        _cfg.SetFilePath("UserData/RisingFame.cfg", autoload: true);
+
+        _cfgExpBase = _cfg.CreateEntry(
+            "ExpMultiplierBase", 3.0f, "战斗经验-基础倍率",
+            "战斗武学经验倍率基础值(rank0 时的倍率)。武学等级越高加成越多。\n" +
+            "想完全关闭加成: Base=1.0 且 Step=0.0。");
+        _cfgExpStep = _cfg.CreateEntry(
+            "ExpMultiplierStep", 0.5f, "战斗经验-每段加成",
+            "战斗武学经验倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
+
+        _cfgLivingBase = _cfg.CreateEntry(
+            "LivingSkillExpMultiplierBase", 2.0f, "生活技能经验-基础倍率",
+            "生活技能经验倍率基础值。想完全关闭加成: Base=1.0 且 Step=0.0。");
+        _cfgLivingStep = _cfg.CreateEntry(
+            "LivingSkillExpMultiplierStep", 0.5f, "生活技能经验-每段加成",
+            "生活技能经验倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
+
+        _cfgFavorBase = _cfg.CreateEntry(
+            "FavorMultiplierBase", 1.5f, "好感度-基础倍率",
+            "好感度倍率基础值。想完全关闭加成: Base=1.0 且 Step=0.0。");
+        _cfgFavorStep = _cfg.CreateEntry(
+            "FavorMultiplierStep", 0.5f, "好感度-每段加成",
+            "好感度倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
+    }
+#endif
+
+    void TryPatch(HarmonyLib.Harmony harmony, System.Reflection.MethodInfo? target,
         HarmonyMethod? prefix = null, HarmonyMethod? postfix = null, string name = "")
     {
         if (target == null) { Log.LogWarning($"[SKIP] {name} - not found"); return; }
@@ -236,7 +333,7 @@ public class Plugin : BasePlugin
         catch (Exception ex) { Log.LogError($"[FAIL] {name}: {ex.Message}"); }
     }
 
-    void TryPatchAllOverloads(Harmony harmony, Type type, string methodName,
+    void TryPatchAllOverloads(HarmonyLib.Harmony harmony, Type type, string methodName,
         HarmonyMethod? prefix = null, HarmonyMethod? postfix = null)
     {
         try
