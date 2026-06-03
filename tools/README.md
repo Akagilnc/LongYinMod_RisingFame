@@ -40,9 +40,9 @@ each script if the game lives elsewhere.
 python tools/dump_textassets.py
 ```
 
-Then sanity-check: the effect table should still match the design-doc copy —
+Then `git diff --stat docs/reference/game-tables/` to see which tables changed, and
+sanity-check the effect table's integrity (header + 215 contiguous rows, 16 cols each):
 
 ```
-# 0 diffs expected
-python -c "mine=[r.split('\t') for r in open('docs/reference/special-effects-tab000029.tsv',encoding='utf-8').read().splitlines() if r.strip()]; game=[r.split(',') for r in open('docs/reference/game-tables/SpeAddDataBase.csv',encoding='utf-8-sig').read().splitlines() if r.strip()]; print('diffs', sum(1 for i in range(max(len(mine),len(game))) if (mine[i] if i<len(mine) else None)!=(game[i] if i<len(game) else None)))"
+python -c "rows=[r.split(',') for r in open('docs/reference/game-tables/SpeAddDataBase.csv',encoding='utf-8-sig').read().splitlines() if r.strip()]; ids=[int(r[0]) for r in rows[1:]]; print('rows', len(rows), 'cols', {len(r) for r in rows}, 'ids', ids[0], '..', ids[-1], 'contiguous', ids==list(range(ids[0],ids[-1]+1)))"
 ```
