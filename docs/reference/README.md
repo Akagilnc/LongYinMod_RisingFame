@@ -1,7 +1,17 @@
 # Game data reference
 
-Captured game-design tables from the upstream design doc, kept locally as reference
-for future mod work. These are **read-only reference data**, not consumed by the build.
+Captured game-design tables kept locally as reference for future mod work. These are
+**read-only reference data**, not consumed by the build.
+
+Two sources, which have been cross-checked against each other:
+
+- **`game-tables/`** — all design tables extracted directly from the shipped build
+  (`resources.assets`) with UnityPy. **Authoritative** — these are the values the mod runs
+  against. See `game-tables/README.md`. Regenerate via `tools/dump_textassets.py`.
+- **`special-effects-tab000029.tsv`** — the 特效/词条 table as pasted from the upstream
+  Tencent Docs design sheet (tab 000029). Kept for provenance; **verified byte-for-byte
+  identical** to the build's `game-tables/SpeAddDataBase.csv` (0 diffs), so the design doc and
+  the shipped build agree for this table.
 
 ## special-effects-tab000029.tsv — 特效/词条定义表
 
