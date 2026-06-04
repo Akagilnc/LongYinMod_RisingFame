@@ -33,6 +33,16 @@ public class Plugin :
     const int BreakThroughFastRefreshFrames = 20;
     const float BreakThroughFastParticleDuration = 0.02f;
 
+    // Default multiplier curve (rate = Base + Step * heroForceLv). Single source of
+    // truth shared by the BepInEx hardcoded path and the MelonPreferences defaults,
+    // so balance tweaks only touch one place.
+    const float DefaultExpBase = 3.0f;
+    const float DefaultExpStep = 0.5f;
+    const float DefaultLivingBase = 2.0f;
+    const float DefaultLivingStep = 0.5f;
+    const float DefaultFavorBase = 1.5f;
+    const float DefaultFavorStep = 0.5f;
+
 #if MELON
     // Thin shim so existing Log.LogInfo/LogWarning/LogError call sites stay unchanged.
     internal sealed class MelonLogShim
@@ -112,11 +122,11 @@ public class Plugin :
     {
         if (!Enabled) return 1f;
 #if MELON
-        float b = _cfgExpBase?.Value ?? 3.0f;
-        float s = _cfgExpStep?.Value ?? 0.5f;
+        float b = _cfgExpBase?.Value ?? DefaultExpBase;
+        float s = _cfgExpStep?.Value ?? DefaultExpStep;
         return Math.Max(b + s * hero.heroForceLv, 1f);
 #else
-        return Math.Max(3.0f + 0.5f * hero.heroForceLv, 1f);
+        return Math.Max(DefaultExpBase + DefaultExpStep * hero.heroForceLv, 1f);
 #endif
     }
 
@@ -125,11 +135,11 @@ public class Plugin :
     {
         if (!Enabled) return 1f;
 #if MELON
-        float b = _cfgLivingBase?.Value ?? 2.0f;
-        float s = _cfgLivingStep?.Value ?? 0.5f;
+        float b = _cfgLivingBase?.Value ?? DefaultLivingBase;
+        float s = _cfgLivingStep?.Value ?? DefaultLivingStep;
         return Math.Max(b + s * hero.heroForceLv, 1f);
 #else
-        return Math.Max(2.0f + 0.5f * hero.heroForceLv, 1f);
+        return Math.Max(DefaultLivingBase + DefaultLivingStep * hero.heroForceLv, 1f);
 #endif
     }
 
@@ -138,11 +148,11 @@ public class Plugin :
     {
         if (!Enabled) return 1f;
 #if MELON
-        float b = _cfgFavorBase?.Value ?? 1.5f;
-        float s = _cfgFavorStep?.Value ?? 0.5f;
+        float b = _cfgFavorBase?.Value ?? DefaultFavorBase;
+        float s = _cfgFavorStep?.Value ?? DefaultFavorStep;
         return Math.Max(b + s * hero.heroForceLv, 1f);
 #else
-        return Math.Max(1.5f + 0.5f * hero.heroForceLv, 1f);
+        return Math.Max(DefaultFavorBase + DefaultFavorStep * hero.heroForceLv, 1f);
 #endif
     }
 
@@ -302,25 +312,25 @@ public class Plugin :
         _cfg.SetFilePath("UserData/RisingFame.cfg", autoload: true);
 
         _cfgExpBase = _cfg.CreateEntry(
-            "ExpMultiplierBase", 3.0f, "战斗经验-基础倍率",
+            "ExpMultiplierBase", DefaultExpBase, "战斗经验-基础倍率",
             "战斗武学经验倍率基础值(rank0 时的倍率)。武学等级越高加成越多。\n" +
             "想完全关闭加成: Base=1.0 且 Step=0.0。");
         _cfgExpStep = _cfg.CreateEntry(
-            "ExpMultiplierStep", 0.5f, "战斗经验-每段加成",
+            "ExpMultiplierStep", DefaultExpStep, "战斗经验-每段加成",
             "战斗武学经验倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
 
         _cfgLivingBase = _cfg.CreateEntry(
-            "LivingSkillExpMultiplierBase", 2.0f, "生活技能经验-基础倍率",
+            "LivingSkillExpMultiplierBase", DefaultLivingBase, "生活技能经验-基础倍率",
             "生活技能经验倍率基础值。想完全关闭加成: Base=1.0 且 Step=0.0。");
         _cfgLivingStep = _cfg.CreateEntry(
-            "LivingSkillExpMultiplierStep", 0.5f, "生活技能经验-每段加成",
+            "LivingSkillExpMultiplierStep", DefaultLivingStep, "生活技能经验-每段加成",
             "生活技能经验倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
 
         _cfgFavorBase = _cfg.CreateEntry(
-            "FavorMultiplierBase", 1.5f, "好感度-基础倍率",
+            "FavorMultiplierBase", DefaultFavorBase, "好感度-基础倍率",
             "好感度倍率基础值。想完全关闭加成: Base=1.0 且 Step=0.0。");
         _cfgFavorStep = _cfg.CreateEntry(
-            "FavorMultiplierStep", 0.5f, "好感度-每段加成",
+            "FavorMultiplierStep", DefaultFavorStep, "好感度-每段加成",
             "好感度倍率每段加成(实际倍率 = Base + Step * 武学等级)。");
     }
 #endif
