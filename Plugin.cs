@@ -71,6 +71,11 @@ public class Plugin :
     // ---- Mod ON/OFF ----
     internal static bool Enabled = true;
 
+    // ---- Debug probes ON/OFF (Alt+Shift+D) ----
+    // When false (default) all auction probe/dump instrumentation no-ops so the
+    // log stays quiet during normal play. Toggle at runtime to diagnose.
+    internal static bool DebugProbes = false;
+
     // Input debounce to avoid rapid toggle spam.
     static float _nextToggleTime;
     static int _lastPollFrame = -1;
@@ -301,7 +306,7 @@ public class Plugin :
         LogMethodOverloads(typeof(ItemListController), "RefreshItemList");
         LogMethodOverloads(typeof(ItemListController), "SetItemListData");
 
-        Log.LogInfo($"RisingFame v{PluginVersion} loaded. Mod ON. Press '=' to toggle. Press Alt+R to refresh current panel. Press Alt+I to dump auction UI snapshot.");
+        Log.LogInfo($"RisingFame v{PluginVersion} loaded. Mod ON. Press '=' to toggle. Press Alt+R to refresh current panel. Press Alt+Shift+D to toggle debug probes (default OFF); when ON, Alt+I dumps the auction UI snapshot.");
         Log.LogInfo("Martial exp: rank1 x3.0, +0.5/rank. Living exp: rank1 x2.0, +0.5/rank. Favor: rank1 x1.5, +0.5/rank. Contribution enabled. BookWrite: speed x10, cost/time /10. Quick refresh: breakthrough / special enhance / enhance / craft / auction reroll arm.");
     }
 
@@ -379,6 +384,7 @@ public class Plugin :
 
     static void LogMethodOverloads(Type type, string methodName)
     {
+        if (!DebugProbes) return;
         try
         {
             const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
@@ -443,9 +449,21 @@ public class Plugin :
                 return;
             }
 
+            bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
+            bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+
+            // Alt+Shift+D toggles debug probes. Works even when the mod is OFF.
+            if (altHeld && shiftHeld && Input.GetKeyDown(KeyCode.D))
+            {
+                _nextToggleTime = Time.unscaledTime + 0.2f;
+                DebugProbes = !DebugProbes;
+                Log.LogInfo($"[RisingFame] Debug probes {(DebugProbes ? "ON" : "OFF")}");
+                QueueBeep(enabled: DebugProbes);
+                return;
+            }
+
             if (!Enabled) return;
 
-            bool altHeld = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
             if (!altHeld) return;
 
             bool refreshPressed = Input.GetKeyDown(KeyCode.R);
@@ -453,7 +471,13 @@ public class Plugin :
 
             if (inspectPressed)
             {
-                bool shiftHeld = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
+                if (!DebugProbes)
+                {
+                    Log.LogInfo("[RisingFame] Auction dump skipped: debug probes OFF (Alt+Shift+D to enable).");
+                    QueueRefreshBeep(success: false);
+                    return;
+                }
+
                 ArmAuctionNaturalProbe(withStack: shiftHeld);
                 DumpAuctionUiSnapshot();
                 QueueRefreshBeep(success: true);
@@ -527,6 +551,7 @@ public class Plugin :
 
     static void ArmAuctionNaturalProbe(bool withStack)
     {
+        if (!DebugProbes) return;
         _auctionProbeNaturalId = NextProbeId("natural", ref _auctionProbeNaturalSeq);
         _auctionProbeNaturalArmed = true;
         if (withStack)
@@ -540,6 +565,7 @@ public class Plugin :
 
     static void ArmAuctionPluginProbe()
     {
+        if (!DebugProbes) return;
         _auctionProbePluginId = NextProbeId("plugin", ref _auctionProbePluginSeq);
         _auctionProbePluginArmed = true;
         Log.LogInfo($"[RisingFame] Auction probe armed. auction_probe_id={_auctionProbePluginId} source=plugin");
@@ -1053,6 +1079,7 @@ public class Plugin :
 
     static void DumpAuctionUiSnapshot()
     {
+        if (!DebugProbes) return;
         try
         {
             Log.LogInfo("[RisingFame] ===== Auction UI Snapshot =====");
@@ -1906,6 +1933,7 @@ public class Plugin :
 
     internal static void LogAuctionEntry(MethodBase method, string phase)
     {
+        if (!DebugProbes) return;
         if (!ShouldLogProbeAny())
             return;
 
@@ -1927,6 +1955,7 @@ public class Plugin :
 
     internal static void LogItemListEntry(ItemListController list, MethodBase method, object[]? args, string phase)
     {
+        if (!DebugProbes) return;
         if (!ShouldLogProbeAny())
             return;
 
@@ -1952,6 +1981,7 @@ public class Plugin :
 
     internal static void LogAuctionProbeShow(PlotController plot, AuctionProbeSource source)
     {
+        if (!DebugProbes) return;
         bool activated = TryActivateProbe(source, $"ShowAuctionItem({source})");
         if (!activated && !IsActiveProbe(source))
             return;
@@ -1967,6 +1997,7 @@ public class Plugin :
 
     internal static void LogAuctionProbeShowPost(PlotController plot)
     {
+        if (!DebugProbes) return;
         if (string.IsNullOrWhiteSpace(_auctionProbeActiveId))
             return;
 
@@ -1987,6 +2018,7 @@ public class Plugin :
 
     internal static void LogAuctionProbeGenerate(PlotController plot, ItemListData list, float shopLv, int itemNum, string phase)
     {
+        if (!DebugProbes) return;
         if (string.IsNullOrWhiteSpace(_auctionProbeActiveId) && !TryActivateProbeFromAny("GenerateAuctionItem"))
             return;
 
@@ -2064,6 +2096,7 @@ public class Plugin :
 
     static void LogAuctionPlotContext(PlotController plot)
     {
+        if (!DebugProbes) return;
         string plotName = plot.nowPlot?.plotName ?? "null";
         string plotCall = plot.nowPlot?.plotCallFuc ?? "null";
         string clickCall = plot.nowSinglePlot?.clickCallFuc ?? "null";
@@ -2083,6 +2116,7 @@ public class Plugin :
 
     static void LogRefreshContext()
     {
+        if (!DebugProbes) return;
         AuctionController? auction = AuctionController.Instance;
         if (auction != null)
         {
@@ -2258,7 +2292,7 @@ static class AuctionTracePatches
     {
         Plugin.CacheAuctionGenerate(__0, __1, __2, __3);
         Plugin.LogAuctionProbeGenerate(__instance, __0, __1, __3, "pre");
-        if (Plugin.ShouldTraceAuctionRefresh())
+        if (Plugin.DebugProbes && Plugin.ShouldTraceAuctionRefresh())
             Plugin.Log.LogInfo($"[RisingFame] Auction generate pre pool={Plugin.GetItemListSummary(__0)} shopLv={__1:0.##} itemNum={__3} ctx={Plugin.GetAuctionChoiceContext(__instance)}");
     }
 
@@ -2266,7 +2300,7 @@ static class AuctionTracePatches
     {
         Plugin.MarkAuctionGenerated();
         Plugin.LogAuctionProbeGenerate(__instance, __0, __1, __3, "post");
-        if (Plugin.ShouldTraceAuctionRefresh())
+        if (Plugin.DebugProbes && Plugin.ShouldTraceAuctionRefresh())
             Plugin.Log.LogInfo($"[RisingFame] Auction generate post pool={Plugin.GetItemListSummary(__0)} shopLv={__1:0.##} itemNum={__3} ctx={Plugin.GetAuctionChoiceContext(__instance)}");
     }
 
@@ -2277,14 +2311,14 @@ static class AuctionTracePatches
         if (source == Plugin.AuctionProbeSource.None)
             source = Plugin.AuctionProbeSource.Natural;
         Plugin.LogAuctionProbeShow(__instance, source);
-        if (Plugin.ShouldTraceAuctionRefresh())
+        if (Plugin.DebugProbes && Plugin.ShouldTraceAuctionRefresh())
             Plugin.Log.LogInfo($"[RisingFame] ShowAuctionItem pre pool={Plugin.GetItemListSummary(__instance.tempPlotShop)} ctx={Plugin.GetAuctionChoiceContext(__instance)}");
     }
 
     public static void ShowAuctionItem_Post(PlotController __instance)
     {
         Plugin.LogAuctionProbeShowPost(__instance);
-        if (Plugin.ShouldTraceAuctionRefresh())
+        if (Plugin.DebugProbes && Plugin.ShouldTraceAuctionRefresh())
             Plugin.Log.LogInfo($"[RisingFame] ShowAuctionItem post pool={Plugin.GetItemListSummary(__instance.tempPlotShop)} ctx={Plugin.GetAuctionChoiceContext(__instance)}");
     }
 }
@@ -2308,11 +2342,13 @@ static class AuctionEntryTracePatches
 {
     public static void AuctionEntry_Pre(AuctionController __instance, MethodBase __originalMethod)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.LogAuctionEntry(__originalMethod, "pre");
     }
 
     public static void AuctionEntry_Post(AuctionController __instance, MethodBase __originalMethod)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.LogAuctionEntry(__originalMethod, "post");
     }
 }
@@ -2322,11 +2358,13 @@ static class ItemListTracePatches
 {
     public static void ItemList_Pre(ItemListController __instance, MethodBase __originalMethod, object[] __args)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.LogItemListEntry(__instance, __originalMethod, __args, "pre");
     }
 
     public static void ItemList_Post(ItemListController __instance, MethodBase __originalMethod, object[] __args)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.LogItemListEntry(__instance, __originalMethod, __args, "post");
     }
 }
@@ -2336,11 +2374,13 @@ static class ChoosePanelTracePatches
 {
     public static void HideChoosePanel_Post(ChooseController __instance)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.OnChoosePanelClosed("HideChoosePanel");
     }
 
     public static void UnshowChoosePanel_Post(ChooseController __instance)
     {
+        if (!Plugin.DebugProbes) return;
         Plugin.OnChoosePanelClosed("UnshowChoosePanel");
     }
 }
